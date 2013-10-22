@@ -1,4 +1,5 @@
 (require '[datomic.api :as d])
+(require '[geohash.core :as geohash])
 
 (def uri "datomic:mem://gps")
 
@@ -62,42 +63,6 @@
 
 @(d/transact conn schema)
 
-(def first-transact
-  (datomic.api/transact conn
-                        [{
-                          :db/id #db/id[:db.part/user -1000001]
-                          :vendor/name "Quick deals"
-                          :vendor/deal "Buy one get one free"}
-                         {:db/id #db/id [:db.part/user -1000002]
-                          :location/vendor #db/id[:db.part/user -1000001]
-                          :location/geocode "abcfwert2asr"
-                          :location/lat 50.21345123
-                          :location/lon -6.32567134}
-                         ]))
-
-
-;; now let get the database value
-(def dbval (d/db conn))
-
-;; Query for the new hash value
-(def q-result (d/q '[:find ?e
-                     :where [?e :vendor/name] ]
-                   dbval))
-
-;; The result
-(count  q-result)
-
-;; Turn this into an entity to get its properties etc
-(def ent (d/entity dbval (ffirst q-result)))
-
-(keys  ent)
-(vals ent)
-
-(println  (:location/vendor ent))
-(:db/doc ent)
-
-(require '[geohash.core :as geohash])
-
 (defn save-deal[lat lon vendor-name deal-txt]
   (let [vendor-tmp-id (datomic.api/tempid :db.part/user)
         location-tmp-id (datomic.api/tempid :db.part/user)
@@ -114,3 +79,29 @@
              :location/lon ~lon}])))
 
 (save-deal 53.98193516 -6.41601562 "Dundalk shop" "Free coffee")
+
+
+(defn show-all-deals[]
+  (let [results (d/q '[:find ?e :where [?e :location/geocode]] (d/db conn))]
+    (doseq[r results]
+      (let [location-ent (d/entity dbval (first r))
+            vendor-ent (first (:location/vendor location-ent))
+            geocode (:location/geocode location-ent)
+            lat (:location/lat location-ent)
+            lon (:location/lon location-ent)
+            vendor-name (:vendor/name vendor-ent)
+            vendor-deal (:vendor/deal vendor-ent)]
+        (println "-----------------------------------")
+        (println (str "geocode: " geocode))
+        (println (str "lat:     " lat))
+        (println (str "lon:     " lon))
+        (println (str "Vendor:  " vendor-name))
+        (println (str "Deal:    " vendor-deal))
+        (println)))))
+
+
+
+(show-all-deals)
+
+
+(d/delete-database uri)
