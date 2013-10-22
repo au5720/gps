@@ -1,5 +1,6 @@
-(require '[datomic.api :as d])
-(require '[geohash.core :as geohash])
+(ns gps.data
+  (:require [datomic.api :as d]
+            [geohash.core :as geohash]))
 
 (def uri "datomic:mem://gps")
 
@@ -80,28 +81,59 @@
 
 (save-deal 53.98193516 -6.41601562 "Dundalk shop" "Free coffee")
 
+(defn print-entity[entity]
+  (let [location-ent (d/entity (d/db conn) (first entity))
+        vendor-ent (first (:location/vendor location-ent))
+        geocode (:location/geocode location-ent)
+        lat (:location/lat location-ent)
+        lon (:location/lon location-ent)
+        vendor-name (:vendor/name vendor-ent)
+        vendor-deal (:vendor/deal vendor-ent)]
+    (println "-----------------------------------")
+    (println (str "geocode: " geocode))
+    (println (str "lat:     " lat))
+    (println (str "lon:     " lon))
+    (println (str "Vendor:  " vendor-name))
+    (println (str "Deal:    " vendor-deal))
+    (println)))
+
 
 (defn show-all-deals[]
   (let [results (d/q '[:find ?e :where [?e :location/geocode]] (d/db conn))]
     (doseq[r results]
-      (let [location-ent (d/entity dbval (first r))
-            vendor-ent (first (:location/vendor location-ent))
-            geocode (:location/geocode location-ent)
-            lat (:location/lat location-ent)
-            lon (:location/lon location-ent)
-            vendor-name (:vendor/name vendor-ent)
-            vendor-deal (:vendor/deal vendor-ent)]
-        (println "-----------------------------------")
-        (println (str "geocode: " geocode))
-        (println (str "lat:     " lat))
-        (println (str "lon:     " lon))
-        (println (str "Vendor:  " vendor-name))
-        (println (str "Deal:    " vendor-deal))
-        (println)))))
-
+      (print-entity r))))
 
 
 (show-all-deals)
 
+(defn get-nearest-deals
+  "Get deals within a certain radius"
+  [lat lon n]
+  (let [geocode (.substring (geohash/encode (vector lat lon)) 0 n)
+        pad-str1 (.substring "000000000000" 0 (- 12 n))
+        pad-str2 (.substring "zzzzzzzzzzzz" 0 (- 12 n))
+        start (str geocode pad-str1)
+        end (str geocode pad-str2)
+        res (d/q '[:find ?e :in $ ?start ?end
+                   :where [?e :location/geocode ?g]
+                          [(>= ?g ?start)]
+                          [(< ?g ?end)]]
+                 (d/db conn) start end)]
+    (println start)
+    (println end)
+    (println (count res))
+    (doseq[r res]
+      (print-entity r))))
+
+;(get-nearest-deals 53.98193516 -6.41601562 8)
+(get-nearest-deals 53.99134711 -6.39824867 7)
+
+;; Some test data around my house (Trying to link char to distance)
+;; We may need to show distances and directions as well
+(save-deal 53.99134711 -6.39824867 "Outside House" "Deal 1")
+(save-deal 53.99101911 -6.39863491 "Middle of grass" "Deal 1.5")
+(save-deal 53.99086773 -6.3988924  "End of grass"  "Deal 2")
+(save-deal 53.99031266 -6.40017986 "Junction DublinRD" "Deal 3")
+(save-deal 53.98908894 -6.39942884 "Hospital Junction" "Deal4")
 
 (d/delete-database uri)
