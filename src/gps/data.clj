@@ -1,6 +1,7 @@
 (ns gps.data
   (:require [datomic.api :as d]
-            [geohash.core :as geohash]))
+            [geohash.core :as geohash]
+            [gps.core :as gps]))
 
 (def uri "datomic:mem://gps")
 
@@ -81,7 +82,23 @@
 
 (save-deal 53.98193516 -6.41601562 "Dundalk shop" "Free coffee")
 
-(defn print-entity[entity]
+;; Calculate heading and distance given two GPS co-ordinates
+(defn heading-distance[gps-start gps-end]
+  (let [lat-start (:lat gps-start)
+        lon-start (:lon gps-start)
+        lat-end (:lat gps-end)
+        lon-end (:lon gps-end)
+        NS (if (< lat-start lat-end) :north :south)
+        EW (if (< lon-start lon-end) :east :west)
+        ]
+    (vector NS EW (gps/haversine gps-start gps-end))))
+
+(heading-distance {:lat 56.99134711 :lon -6.40017986}
+                  {:lat 54.99031266 :lon -4.40017986})
+
+
+
+(defn print-entity[start-lat start-lon entity]
   (let [location-ent (d/entity (d/db conn) (first entity))
         vendor-ent (first (:location/vendor location-ent))
         geocode (:location/geocode location-ent)
@@ -95,16 +112,18 @@
     (println (str "lon:     " lon))
     (println (str "Vendor:  " vendor-name))
     (println (str "Deal:    " vendor-deal))
+    (println  (heading-distance {:lat start-lat :lon start-lon}
+                                {:lat lat :lon lon}))
     (println)))
 
 
-(defn show-all-deals[]
+(defn show-all-deals[start-lat start-lon]
   (let [results (d/q '[:find ?e :where [?e :location/geocode]] (d/db conn))]
     (doseq[r results]
-      (print-entity r))))
+      (print-entity start-lat start-lon r))))
 
 
-(show-all-deals)
+(show-all-deals 53.99134711 -6.40017986)
 
 (defn get-nearest-deals
   "Get deals within a certain radius"
@@ -123,7 +142,7 @@
     (println end)
     (println (count res))
     (doseq[r res]
-      (print-entity r))))
+      (print-entity lat lon r))))
 
 ;(get-nearest-deals 53.98193516 -6.41601562 8)
 (get-nearest-deals 53.99134711 -6.39824867 6)
@@ -135,15 +154,10 @@
 (save-deal 53.99086773 -6.3988924  "End of grass"  "Deal 2")
 (save-deal 53.99031266 -6.40017986 "Junction DublinRD" "Deal 3")
 (save-deal 53.98908894 -6.39942884 "Hospital Junction" "Deal4")
+(save-deal 53.99369399 -6.39780177 "Tom Bellew Avenue" "Small Shop")
+(save-deal 53.99369399 -6.39516288 "Bellew Ave" "At round about")
 
-;; Calculate heading and distance given two GPS co-ordinates
-(defn heading-distance[gps-start gps-end]
-  (let [lat-start (:lat gps-start)
-        lon-start (:lon gps-end)
-        lat-end (:lat gps-end)
-        lon-end (:lon gps-end)
-        ]
-    ))
+
 
 (d/delete-database uri)
 
