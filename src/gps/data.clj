@@ -126,7 +126,7 @@
       (print-entity r))))
 
 ;(get-nearest-deals 53.98193516 -6.41601562 8)
-(get-nearest-deals 53.99134711 -6.39824867 7)
+(get-nearest-deals 53.99134711 -6.39824867 6)
 
 ;; Some test data around my house (Trying to link char to distance)
 ;; We may need to show distances and directions as well
@@ -136,4 +136,18 @@
 (save-deal 53.99031266 -6.40017986 "Junction DublinRD" "Deal 3")
 (save-deal 53.98908894 -6.39942884 "Hospital Junction" "Deal4")
 
+;; Calculate heading and distance given two GPS co-ordinates
+(defn heading-distance[gps-start gps-end]
+  (let [lat-start (:lat gps-start)
+        lon-start (:lon gps-end)
+        lat-end (:lat gps-end)
+        lon-end (:lon gps-end)
+        ]
+    ))
+
 (d/delete-database uri)
+
+;var y = Math.sin(dLon) * Math.cos(lat2);
+;var x = Math.cos(lat1)*Math.sin(lat2) -
+;Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
+;var brng = Math.atan2(y, x).toDeg();
