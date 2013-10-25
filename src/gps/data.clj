@@ -3,6 +3,7 @@
             [geohash.core :as geohash]
             [gps.core :as gps]))
 
+
 (def uri "datomic:mem://gps")
 
 (d/create-database uri)
@@ -80,8 +81,6 @@
              :location/lat ~lat
              :location/lon ~lon}])))
 
-(save-deal 53.98193516 -6.41601562 "Dundalk shop" "Free coffee")
-
 ;; Calculate heading and distance given two GPS co-ordinates
 (defn heading-distance[gps-start gps-end]
   (let [lat-start (:lat gps-start)
@@ -92,11 +91,6 @@
         EW (if (< lon-start lon-end) :east :west)
         ]
     (vector NS EW (gps/haversine gps-start gps-end))))
-
-(heading-distance {:lat 56.99134711 :lon -6.40017986}
-                  {:lat 54.99031266 :lon -4.40017986})
-
-
 
 (defn print-entity[start-lat start-lon entity]
   (let [location-ent (d/entity (d/db conn) (first entity))
@@ -116,14 +110,10 @@
                                 {:lat lat :lon lon}))
     (println)))
 
-
 (defn show-all-deals[start-lat start-lon]
   (let [results (d/q '[:find ?e :where [?e :location/geocode]] (d/db conn))]
     (doseq[r results]
       (print-entity start-lat start-lon r))))
-
-
-(show-all-deals 53.99134711 -6.40017986)
 
 (defn get-nearest-deals
   "Get deals within a certain radius"
@@ -144,8 +134,8 @@
     (doseq[r res]
       (print-entity lat lon r))))
 
-;(get-nearest-deals 53.98193516 -6.41601562 8)
-(get-nearest-deals 53.99134711 -6.39824867 6)
+
+
 
 ;; Some test data around my house (Trying to link char to distance)
 ;; We may need to show distances and directions as well
@@ -157,11 +147,8 @@
 (save-deal 53.99369399 -6.39780177 "Tom Bellew Avenue" "Small Shop")
 (save-deal 53.99369399 -6.39516288 "Bellew Ave" "At round about")
 
+;(show-all-deals 53.99134711 -6.40017986)
+(get-nearest-deals 53.99134711 -6.39824867 5 )
 
 
 (d/delete-database uri)
-
-;var y = Math.sin(dLon) * Math.cos(lat2);
-;var x = Math.cos(lat1)*Math.sin(lat2) -
-;Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
-;var brng = Math.atan2(y, x).toDeg();
