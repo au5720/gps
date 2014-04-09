@@ -5,5 +5,4 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [geohash "1.0.1"]
-                 [com.datomic/datomic "0.8.3335"]
-                 ])
+                 [com.datomic/datomic-free "0.9.4699"]])
