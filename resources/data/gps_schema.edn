@@ -1,0 +1,52 @@
+ ;; Location Attributes
+ ;; Location Geocode
+ [{:db/id #db/id[:db.part/db]
+  :db/ident :location/geocode
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/index true
+  :db/unique :db.unique/identity
+  :db/doc "geohash code"
+  :db.install/_attribute :db.part/db}
+
+  {:db/id #db/id [:db.part/db]
+  :db/ident :location/lat
+  :db/valueType :db.type/double
+  :db/cardinality :db.cardinality/one
+  :db/doc "GPS Latitude"
+  :db.install/_attribute :db.part/db}
+
+  {:db/id #db/id [:db.part/db]
+  :db/ident :location/lon
+  :db/valueType :db.type/double
+  :db/cardinality :db.cardinality/one
+  :db/doc "GPS Longitude"
+  :db.install/_attribute :db.part/db}
+
+  ;; Sellers location geocode
+  {:db/id #db/id [:db.part/db]
+  :db/ident :location/vendor
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Reference to one or more Vendors"
+  :db.install/_attribute :db.part/db}]
+
+ ;; Vendor
+ [{:db/id #db/id [:db.part/db]
+  :db/ident :vendor/name
+  :db/valueType :db.type/string
+  :db/index true
+  :db/unique :db.unique/identity
+  :db/cardinality :db.cardinality/one
+  :db/fulltext true
+  :db/doc "Vendor's name"
+  :db.install/_attribute :db.part/db}
+
+  {:db/id #db/id [:db.part/db]
+  :db/ident :vendor/deal
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/fulltext true
+  :db/doc "Vendor's deal details"
+  :db.install/_attribute :db.part/db}]
+

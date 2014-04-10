@@ -1,4 +1,4 @@
-(ns gps.core
+(ns gps.orig
   (:require [geohash.core :as geohash]))
 
 (def R 6367)

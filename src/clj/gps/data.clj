@@ -1,70 +1,12 @@
 (ns gps.data
   (:require [datomic.api :as d]
             [geohash.core :as geohash]
-            [gps.core :as gps]))
+            [gps.orig :as gps]))
 
+(def uri "datomic:free://localhost:4334/gps")
 
-(def uri "datomic:mem://gps")
-
-(d/create-database uri)
 
 (def conn (d/connect uri))
-
-(def schema
-  [
-        ;; Location Attributes
-        ;Location Geocode
-        {:db/id #db/id [:db.part/db]
-         :db/ident :location/geocode
-         :db/valueType :db.type/string
-         :db/cardinality :db.cardinality/one
-         :db/index true
-         :db/unique :db.unique/identity
-         :db/doc "geohash code"
-         :db.install/_attribute :db.part/db}
-
-        {:db/id #db/id [:db.part/db]
-         :db/ident :location/lat
-         :db/valueType :db.type/double
-         :db/cardinality :db.cardinality/one
-         :db/doc "GPS Latitude"
-         :db.install/_attribute :db.part/db}
-
-        {:db/id #db/id [:db.part/db]
-         :db/ident :location/lon
-         :db/valueType :db.type/double
-         :db/cardinality :db.cardinality/one
-         :db/doc "GPS Longitude"
-         :db.install/_attribute :db.part/db}
-
-        ;; Sellers location geocode
-        {:db/id #db/id [:db.part/db]
-         :db/ident :location/vendor
-         :db/valueType :db.type/ref
-         :db/cardinality :db.cardinality/many
-         :db/doc "Reference to one or more Vendors"
-         :db.install/_attribute :db.part/db}
-
-        {:db/id #db/id [:db.part/db]
-         :db/ident :vendor/name
-         :db/valueType :db.type/string
-         :db/index true
-         :db/unique :db.unique/identity
-         :db/cardinality :db.cardinality/one
-         :db/fulltext true
-         :db/doc "Vendor's name"
-         :db.install/_attribute :db.part/db}
-
-        {:db/id #db/id [:db.part/db]
-         :db/ident :vendor/deal
-         :db/valueType :db.type/string
-         :db/cardinality :db.cardinality/one
-         :db/fulltext true
-         :db/doc "Vendor's deal details"
-         :db.install/_attribute :db.part/db}
-        ])
-
-@(d/transact conn schema)
 
 (defn save-deal[lat lon vendor-name deal-txt]
   (let [vendor-tmp-id (datomic.api/tempid :db.part/user)
@@ -143,6 +85,7 @@
 (save-deal 53.99101911 -6.39863491 "Middle of grass" "Deal 1.5")
 (save-deal 53.99086773 -6.3988924  "End of grass"  "Deal 2")
 (save-deal 53.99031266 -6.40017986 "Junction DublinRD" "Deal 3")
+
 (save-deal 53.98908894 -6.39942884 "Hospital Junction" "Deal4")
 (save-deal 53.99369399 -6.39780177 "Tom Bellew Avenue" "Small Shop")
 (save-deal 53.99369399 -6.39516288 "Bellew Ave" "At round about")
@@ -151,4 +94,22 @@
 (get-nearest-deals 53.99134711 -6.39824867 5 )
 
 
-(d/delete-database uri)
+;;
+;; Get nearest deals
+;;
+(defn get-nearest-deals
+  "Get deals within a certain radius"
+  [lat lon n]
+  (let [geocode (.substring (geohash/encode (vector lat lon)) 0 n)
+        pad-str1 (.substring "000000000000" 0 (- 12 n))
+        pad-str2 (.substring "zzzzzzzzzzzz" 0 (- 12 n))
+        start (str geocode pad-str1)
+        end (str geocode pad-str2)
+        res (d/q '[:find ?e :in $ ?start ?end
+                   :where [?e :location/geocode ?g]
+                          [(>= ?g ?start)]
+                          [(< ?g ?end)]]
+                 (d/db conn) start end)]
+    (vec (map #(d/touch (d/entity (d/db conn) (first %))) res))))
+
+(get-nearest-deals 53.99134711 -6.39824867 5 )
