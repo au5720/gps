@@ -41,7 +41,7 @@
 ;;
 (defn get-nearest-deals
   "Get deals within a certain radius"
-  [db lat lon n]
+  [lat lon n]
   (let [geocode (.substring (geohash/encode (vector lat lon)) 0 n)
         pad-str1 (.substring "000000000000" 0 (- 12 n))
         pad-str2 (.substring "zzzzzzzzzzzz" 0 (- 12 n))
@@ -53,13 +53,23 @@
                           [(>= ?g ?start)]
                           [(< ?g ?end)]]
                  (d/db conn) start end)]
-    (vec (map #(touch db %) res))))
+    (vec (map #(touch (d/db conn) %) res))))
+
+(defn get-nearest-deals-1[lat lon n]
+  (println (str lat " " lon " " n))
+  (println (type lat))
+   ; (generate-response
+   ;(get-nearest-deals 53.99134711 -6.39824867 n)))
+
+  (generate-response
+   (get-nearest-deals (Float. lat) (Float. lon)  (Integer. n))))
+
 
 
 (defn nearest-deals []
   (generate-response
-   ;[{:location/geocode "1234"}]))
-   (get-nearest-deals (d/db conn) 53.99134711 -6.39824867 5)))
+   (get-nearest-deals 53.99134711 -6.39824867 5)))
+
 
 (defn update-class [id params]
   (println  (str "id: " id " params: " params))
@@ -78,6 +88,12 @@
   (GET "/" [] (index))
   (GET "/classes" [] (classes))
   (GET "/deals" [] (nearest-deals))
+  (GET "/deals/:lat/:lon/:radius"
+    {params :params}
+    (get-nearest-deals-1 (:lat params)
+                       (:lon params)
+                       (:radius params)
+                       ))
   (PUT "/class/:id/update"
     {params :params edn-params :edn-params}
     (update-class (:id params) edn-params))

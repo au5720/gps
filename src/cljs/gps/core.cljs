@@ -43,6 +43,16 @@
                        (dom/div nil (:vendor/name deal))
                        (dom/div nil (:vendor/deal deal)))))))
 
+(defn get-deals [lat lon radius]
+   (edn-xhr
+     {:method :get
+      :url (str "deals/" lat "/" lon "/" radius)
+      ;:data {:class/title title}
+      :on-complete
+      (fn [res]
+        (println "server response:" res))}))
+
+
 (defn deals-view [app owner]
   (reify
     om/IWillMount
@@ -50,13 +60,15 @@
       (edn-xhr
         {:method :get
          :url "deals"
-         :on-complete #(om/transact! app :deals (fn [_] %))}))
+         :on-complete #(om/transact! app :deals (fn [_] %))})
+      (get-deals 53.99134711 -6.39824867 5))
     om/IRender
     (render [_]
       (dom/div #js {:id "deals"}
         (dom/h2 nil "Deals")
         (apply dom/ul nil
                (om/build-all deal-view (:deals app)))))))
+
 
 (om/root deals-view app-state
   {:target (gdom/getElement "deals")})
