@@ -40,14 +40,8 @@
                        (dom/div nil (:location/geocode deal))
                        (dom/div nil (:location/lat deal))
                        (dom/div nil (:location/lon deal))
-;                       (dom/div nil (:location/lat deal))
-;                       (dom/div nil (:location/lat deal))
-;                       (dom/div nil (:location/lat deal))
-;                       (dom/div nil (:location/lat deal))
-;                       (dom/div nil (:location/lat deal))
-
-
-                       )))))
+                       (dom/div nil (:vendor/name deal))
+                       (dom/div nil (:vendor/deal deal)))))))
 
 (defn deals-view [app owner]
   (reify

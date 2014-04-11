@@ -30,6 +30,12 @@
                  db)))]
     (generate-response classes)))
 
+(defn touch[db eid-list]
+  (let [location-map (into {} (d/touch (d/entity db (first  eid-list))))
+        vendor-map   (into {} (d/touch (d/entity db (second eid-list))))
+        ret (conj location-map vendor-map)]
+  ret))
+
 ;;
 ;; Get nearest deals
 ;;
@@ -41,12 +47,14 @@
         pad-str2 (.substring "zzzzzzzzzzzz" 0 (- 12 n))
         start (str geocode pad-str1)
         end (str geocode pad-str2)
-        res (d/q '[:find ?e :in $ ?start ?end
+        res (d/q '[:find ?e ?v :in $ ?start ?end
                    :where [?e :location/geocode ?g]
+                          [?e :location/vendor ?v]
                           [(>= ?g ?start)]
                           [(< ?g ?end)]]
                  (d/db conn) start end)]
-    (vec (map #(d/touch (d/entity db (first %))) res))))
+    (vec (map #(touch db %) res))))
+
 
 (defn nearest-deals []
   (generate-response
