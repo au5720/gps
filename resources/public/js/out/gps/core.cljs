@@ -1,9 +1,11 @@
 (ns gps.core
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.reader :as reader]
             [goog.events :as events]
             [goog.dom :as gdom]
             [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true])
+            [om.dom :as dom :include-macros true]
+            [cljs.core.async :refer [put! chan <!]])
   (:import [goog.net XhrIo]
            goog.net.EventType
            [goog.events EventType]))
@@ -28,7 +30,22 @@
         #js {"Content-Type" "application/edn"}))))
 
 (def app-state
-  (atom {:classes [] :deals []}))
+  (atom {:classes [] :deals []
+         :coord {:lon 53.345009999999995 :lat -6.2613717}}))
+
+(defn show-position[]
+  (js/navigator.geolocation.getCurrentPosition
+    (fn[position]
+      (let [lon (.-longitude (.-coords position))
+            lat (.-latitude  (.-coords position))]
+        (println lon)
+        (println lat)
+        #js {:lon lon :lat lat}))
+      ;(println (.-latitude  (.-coords position)))
+      ;(println (.-longitude (.-coords position))))
+    (fn[error]
+      (println (-.code error)))))
+
 
 (defn deal-view [deal owner]
   (reify
@@ -52,39 +69,46 @@
         (println "server response:" res)
         )}))
 
+(defn save-coord [e owner]
+  (let [ch (om/get-state owner :coord-chan)
+        new-coord {:lon 53.345009999999995 :lat -6.2613717}]
+    (put! ch new-coord)))
+
 (defn deals-view [app owner]
   (reify
+    om/IInitState
+    (init-state [_]
+      {:coord-chan (chan)})
     om/IWillMount
     (will-mount [_]
-      (edn-xhr
-        {:method :get
-         ;:url "deals"
-         ;:url (str "deals/" 53.99134711 "/" -6.39824867 "/" 5)
-         :url (str "deals/" 53.345009999999995 "/" -6.2613717 "/" 2)
-         ;53.345009999999995 -6.2613717
-         :on-complete #(om/transact! app :deals (fn [_] %))}))
-    om/IRender
-    (render [_]
+      (let [ch (om/get-state owner :coord-chan)]
+        (go (loop []
+              (let [coord-update (<! ch)
+                    lon (:lon coord-update)
+                    lat (:lat coord-update)
+                    radius (int (* 10 (rand)))]
+                 (edn-xhr
+                   {:method :get
+                    :url (str "deals/" lon "/" lat "/" radius)
+                    :on-complete #(om/transact! app :deals (fn [_] %))}))
+                (recur)))))
+       ;(edn-xhr
+       ;  {:method :get
+       ;   :url (str "deals/" lon "/" lat "/" 2)
+       ;   :on-complete #(om/transact! app :deals (fn [_] %))})))
+    om/IRenderState
+    (render-state [_ state]
       (dom/div #js {:id "deals"}
         (dom/h2 nil "Deals")
+        (dom/button #js {:onClick #(save-coord % owner)} "Refresh")
         (apply dom/ul nil
                (om/build-all deal-view (:deals app)))))))
 
 
-;(om/root deals-view app-state
-;  {:target (gdom/getElement "deals")})
+(om/root deals-view app-state
+  {:target (gdom/getElement "deals")})
 
 
-(defn show-position[]
-  (js/navigator.geolocation.getCurrentPosition
-    (fn[position]
-      (println (.-latitude  (.-coords position)))
-      (println (.-longitude (.-coords position)))
-      (om/root deals-view app-state
-          {:target (gdom/getElement "deals")})
-      )
-    (fn[error]
-      (println (-.code error)))))
 
-(show-position)
+;(show-position)
 
