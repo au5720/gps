@@ -30,7 +30,6 @@
 (def app-state
   (atom {:classes [] :deals []}))
 
-
 (defn deal-view [deal owner]
   (reify
     om/IRender
@@ -50,8 +49,8 @@
       ;:data {:class/title title}
       :on-complete
       (fn [res]
-        (println "server response:" res))}))
-
+        (println "server response:" res)
+        )}))
 
 (defn deals-view [app owner]
   (reify
@@ -59,9 +58,11 @@
     (will-mount [_]
       (edn-xhr
         {:method :get
-         :url "deals"
-         :on-complete #(om/transact! app :deals (fn [_] %))})
-      (get-deals 53.99134711 -6.39824867 5))
+         ;:url "deals"
+         ;:url (str "deals/" 53.99134711 "/" -6.39824867 "/" 5)
+         :url (str "deals/" 53.345009999999995 "/" -6.2613717 "/" 2)
+         ;53.345009999999995 -6.2613717
+         :on-complete #(om/transact! app :deals (fn [_] %))}))
     om/IRender
     (render [_]
       (dom/div #js {:id "deals"}
@@ -70,5 +71,20 @@
                (om/build-all deal-view (:deals app)))))))
 
 
-(om/root deals-view app-state
-  {:target (gdom/getElement "deals")})
+;(om/root deals-view app-state
+;  {:target (gdom/getElement "deals")})
+
+
+(defn show-position[]
+  (js/navigator.geolocation.getCurrentPosition
+    (fn[position]
+      (println (.-latitude  (.-coords position)))
+      (println (.-longitude (.-coords position)))
+      (om/root deals-view app-state
+          {:target (gdom/getElement "deals")})
+      )
+    (fn[error]
+      (println (-.code error)))))
+
+(show-position)
+

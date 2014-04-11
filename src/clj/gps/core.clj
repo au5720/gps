@@ -55,21 +55,10 @@
                  (d/db conn) start end)]
     (vec (map #(touch (d/db conn) %) res))))
 
-(defn get-nearest-deals-1[lat lon n]
+(defn nearest-deals[lat lon n]
   (println (str lat " " lon " " n))
-  (println (type lat))
-   ; (generate-response
-   ;(get-nearest-deals 53.99134711 -6.39824867 n)))
-
   (generate-response
    (get-nearest-deals (Float. lat) (Float. lon)  (Integer. n))))
-
-
-
-(defn nearest-deals []
-  (generate-response
-   (get-nearest-deals 53.99134711 -6.39824867 5)))
-
 
 (defn update-class [id params]
   (println  (str "id: " id " params: " params))
@@ -87,13 +76,7 @@
 (defroutes routes
   (GET "/" [] (index))
   (GET "/classes" [] (classes))
-  (GET "/deals" [] (nearest-deals))
-  (GET "/deals/:lat/:lon/:radius"
-    {params :params}
-    (get-nearest-deals-1 (:lat params)
-                       (:lon params)
-                       (:radius params)
-                       ))
+  (GET "/deals/:lat/:lon/:radius" {params :params} (get-nearest-deals-1 (:lat params) (:lon params) (:radius params)))
   (PUT "/class/:id/update"
     {params :params edn-params :edn-params}
     (update-class (:id params) edn-params))
