@@ -12,8 +12,6 @@
 
 (enable-console-print!)
 
-(println "Hello world!")
-
 (def ^:private meths
   {:get "GET"
    :put "PUT"
@@ -31,21 +29,7 @@
 
 (def app-state
   (atom {:classes [] :deals []
-         :coord {:lon 53.345009999999995 :lat -6.2613717}}))
-
-(defn show-position[]
-  (js/navigator.geolocation.getCurrentPosition
-    (fn[position]
-      (let [lon (.-longitude (.-coords position))
-            lat (.-latitude  (.-coords position))]
-        (println lon)
-        (println lat)
-        #js {:lon lon :lat lat}))
-      ;(println (.-latitude  (.-coords position)))
-      ;(println (.-longitude (.-coords position))))
-    (fn[error]
-      (println (-.code error)))))
-
+         :coord {:lon 53.345009999999995 :lat -6.2613717 :radius 3}}))
 
 (defn deal-view [deal owner]
   (reify
@@ -69,12 +53,34 @@
   (let [ch (om/get-state owner :coord-chan)]
     (js/navigator.geolocation.getCurrentPosition
      (fn[position]
-       (let [lon (.-longitude (.-coords position))
-             lat (.-latitude  (.-coords position))
-             new-coord {:lon lon :lat lat}]
-         (put! ch new-coord)))
+       (try
+           (let [lon (.-longitude (.-coords position))
+                 lat (.-latitude  (.-coords position))
+                 radius (rand-int 10)
+                 new-coord {:lon lon :lat lat :radius radius}]
+             (println new-coord)
+             (println lon)
+             (println lat)
+             (println radius)
+             (swap! app-state assoc :coord new-coord)
+             (swap! app-state assoc :deals [])
+             (put! ch new-coord))
+         (catch js/Object e
+           (println e))))
       (fn[error]
-        (println (-.code error))))))
+        (let [errcode (.-code error)]
+          (cond
+           (= errcode 1) (println "The user has denied you access to their location")
+           (= errcode 2) (println "The network is down")
+           (= errcode 3) (println "It took too long to calculate the user’s position")))))))
+
+(defn lon-lat-view[app owner]
+  (reify
+    om/IRender
+    (render[this]
+      (let [{:keys [lon lat radius]} (:coord app)]
+        (dom/div nil
+          (dom/span nil (str "lon " lon " lat " lat " radius " radius)))))))
 
 (defn deals-view [app owner]
   (reify
@@ -88,26 +94,22 @@
               (let [coord-update (<! ch)
                     lon (:lon coord-update)
                     lat (:lat coord-update)
-                    radius (int (* 10 (rand)))]
+                    radius (:radius coord-update)]
                 (get-deals lat lon radius #(om/transact! app :deals (fn [_] %)))
                 (recur))))))
-       ;(edn-xhr
-       ;  {:method :get
-       ;   :url (str "deals/" lon "/" lat "/" 2)
-       ;   :on-complete #(om/transact! app :deals (fn [_] %))})))
     om/IRenderState
     (render-state [_ state]
       (dom/div #js {:id "deals"}
         (dom/h2 nil "Deals")
+        (println (:coord app))
         (dom/button #js {:onClick #(save-coord % owner)} "Refresh")
         (apply dom/ul nil
                (om/build-all deal-view (:deals app)))))))
 
+(om/root lon-lat-view app-state
+  {:target (gdom/getElement "coord")})
 
 (om/root deals-view app-state
   {:target (gdom/getElement "deals")})
 
-
-
-;(show-position)
 

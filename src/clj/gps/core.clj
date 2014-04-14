@@ -20,15 +20,6 @@
    :headers {"Content-Type" "application/edn"}
    :body (pr-str data)})
 
-(defn classes []
-  (let [db (d/db conn)
-        classes
-        (vec (map #(d/touch (d/entity db (first %)))
-               (d/q '[:find ?class
-                      :where
-                      [?class :class/id]]
-                 db)))]
-    (generate-response classes)))
 
 (defn touch[db eid-list]
   (let [location-map (into {} (d/touch (d/entity db (first  eid-list))))
@@ -58,28 +49,11 @@
 (defn nearest-deals[lat lon n]
   (println (str lat " " lon " " n))
   (generate-response
-   (get-nearest-deals (Float. lat) (Float. lon)  (Integer. n))))
-
-(defn update-class [id params]
-  (println  (str "id: " id " params: " params))
-  (let [db    (d/db conn)
-        title (:class/title params)
-        eid   (ffirst
-                (d/q '[:find ?class
-                       :in $ ?id
-                       :where
-                       [?class :class/id ?id]]
-                  db id))]
-    (d/transact conn [[:db/add eid :class/title title]])
-    (generate-response {:status :ok})))
+   (get-nearest-deals (Float. lat) (Float. lon) (Integer. n))))
 
 (defroutes routes
   (GET "/" [] (index))
-  (GET "/classes" [] (classes))
-  (GET "/deals/:lat/:lon/:radius" {params :params} (get-nearest-deals-1 (:lat params) (:lon params) (:radius params)))
-  (PUT "/class/:id/update"
-    {params :params edn-params :edn-params}
-    (update-class (:id params) edn-params))
+  (GET "/deals/:lat/:lon/:radius" {params :params} (nearest-deals (:lat params) (:lon params) (:radius params)))
   (route/files "/" {:root "resources/public"}))
 
 (def app
