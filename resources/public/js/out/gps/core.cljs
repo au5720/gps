@@ -59,20 +59,22 @@
                        (dom/div nil (:vendor/name deal))
                        (dom/div nil (:vendor/deal deal)))))))
 
-(defn get-deals [lat lon radius]
+(defn get-deals [lat lon radius f]
    (edn-xhr
      {:method :get
       :url (str "deals/" lat "/" lon "/" radius)
-      ;:data {:class/title title}
-      :on-complete
-      (fn [res]
-        (println "server response:" res)
-        )}))
+      :on-complete f}))
 
 (defn save-coord [e owner]
-  (let [ch (om/get-state owner :coord-chan)
-        new-coord {:lon 53.345009999999995 :lat -6.2613717}]
-    (put! ch new-coord)))
+  (let [ch (om/get-state owner :coord-chan)]
+    (js/navigator.geolocation.getCurrentPosition
+     (fn[position]
+       (let [lon (.-longitude (.-coords position))
+             lat (.-latitude  (.-coords position))
+             new-coord {:lon lon :lat lat}]
+         (put! ch new-coord)))
+      (fn[error]
+        (println (-.code error))))))
 
 (defn deals-view [app owner]
   (reify
@@ -87,11 +89,8 @@
                     lon (:lon coord-update)
                     lat (:lat coord-update)
                     radius (int (* 10 (rand)))]
-                 (edn-xhr
-                   {:method :get
-                    :url (str "deals/" lon "/" lat "/" radius)
-                    :on-complete #(om/transact! app :deals (fn [_] %))}))
-                (recur)))))
+                (get-deals lat lon radius #(om/transact! app :deals (fn [_] %)))
+                (recur))))))
        ;(edn-xhr
        ;  {:method :get
        ;   :url (str "deals/" lon "/" lat "/" 2)
