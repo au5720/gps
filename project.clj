@@ -29,5 +29,12 @@
                 :output-to "resources/public/js/main.js"
                 :output-dir "resources/public/js/out"
                 :optimizations :none
+                :source-map true}}
+             {:id "ios"
+              :source-paths ["src/clj" "src/cljs"]
+              :compiler {
+                :output-to "/Users/jennifermorgan/dev/hello/www/js/main.js"
+                :output-dir "/Users/jennifermorgan/dev/hello/www/js/out"
+                :optimizations :none
                 :source-map true}}]})
 

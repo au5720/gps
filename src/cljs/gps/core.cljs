@@ -29,7 +29,7 @@
 
 (def app-state
   (atom {:classes [] :deals []
-         :coord {:lon 53.345009999999995 :lat -6.2613717 :radius 3}}))
+         :coord {:lon 53.345009999999995 :lat -6.2613717 :radius 0}}))
 
 (defn deal-view [deal owner]
   (reify
@@ -46,7 +46,7 @@
 (defn get-deals [lat lon radius f]
    (edn-xhr
      {:method :get
-      :url (str "deals/" lat "/" lon "/" radius)
+      :url (str "http://localhost:8080/deals/" lat "/" lon "/" radius)
       :on-complete f}))
 
 (defn save-coord [e owner]
@@ -56,7 +56,7 @@
        (try
            (let [lon (.-longitude (.-coords position))
                  lat (.-latitude  (.-coords position))
-                 radius (rand-int 10)
+                 radius 0 ;(rand-int 10)
                  new-coord {:lon lon :lat lat :radius radius}]
              (println new-coord)
              (println lon)
